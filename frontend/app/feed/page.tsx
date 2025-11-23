@@ -11,7 +11,7 @@ import axios from "axios";
 
 const Feed = () => {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [posts, setPosts] = useState([]);
     const [text, setText] = useState("");
     const [isPrivate, setIsPrivate] = useState(false);
@@ -19,6 +19,17 @@ const Feed = () => {
     const [preview, setPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef(null);
+
+    const handleLogout = async () => {
+        try {
+            setLoading(true);
+            await logout();
+            toast.success(`Successfully Logged out`);
+        } catch (error) {
+            setLoading(false);
+            toast.error("Something went wrong. Please try again later.");
+        }
+    }
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -822,7 +833,7 @@ const Feed = () => {
                                                 {/* <!--For Mobile--> */}
                                             </div>
                                         </form>
-                                        {loading ? <p>Loading posts...</p> : posts.map(post => <NewsFeed key={post.id} post={post} userId={user.id} />)}
+                                        {loading ? <p>Loading posts...</p> : posts.map((post, i) => <NewsFeed key={i} post={post} userId={user.id} />)}
                                     </div>
                                 </div>
                             </div>
@@ -856,7 +867,7 @@ const Feed = () => {
                                                     </div>
                                                 </div>
                                                 <div className="_right_info_btn_grp">
-                                                    <button type="button" className="_right_info_btn_link">Ignore</button>
+                                                    <button onClick={handleLogout} type="button" className="_right_info_btn_link">Logout</button>
                                                     <button type="button" className="_right_info_btn_link _right_info_btn_link_active">Follow</button>
                                                 </div>
                                             </div>

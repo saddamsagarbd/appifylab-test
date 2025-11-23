@@ -15,6 +15,7 @@ type Post = {
   file_name?: string;
   visibility: number;
   author: number;
+  created_at: Date;
   first_name: string;
   last_name: string;
   liked_by_user: boolean;
@@ -158,8 +159,6 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                         <div className="_feed_inner_timeline_image">
                             <div className="image-wrapper">
                             <Image 
-                                // src={`/uploads/${post.file_name}`} 
-                                // src={`http://localhost:5000/uploads/${post.file_name}`}
                                 src={`${process.env.NEXT_PUBLIC_URL}uploads/${post.file_name}`}
                                 fill
                                 alt="" 
