@@ -36,6 +36,8 @@ export const AuthProvider = ({ children }) => {
 
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("token", data.token);
+
+        router.push("/feed");
     };
 
     const logout = () => {
@@ -43,7 +45,7 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         localStorage.removeItem("user");
         localStorage.removeItem("token");
-        router.push("/login");
+        router.push("/");
     };
 
     return (

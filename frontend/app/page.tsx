@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
@@ -16,18 +16,21 @@ export default function Home() {
     password: '',
   });
 
+  useEffect(() => {
+      if (user) {
+        router.push("/feed")
+      }
+  }, [user, router]);
+
   const handleChange = () => {
     setIsChecked(!isChecked);
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
+  const handleLogin = async () => {
     try {
       setLoading(true);
       await login(formData);
       toast.success(`Login successful`);
-      router.push('/feed');
     } catch (error) {
       setLoading(false);
       toast.error("Failed to login. Please try again later.");
@@ -113,7 +116,6 @@ export default function Home() {
 
                 {/* Form start */}
                 <form
-                  onSubmit={handleLogin}
                   className="_social_login_form"
                 >
 
@@ -158,7 +160,7 @@ export default function Home() {
 
                   {/* Login Button */}
                   <div className="_social_login_form_btn _mar_t40 _mar_b60">
-                    <button type="submit" className="_social_login_form_btn_link _btn1" disabled={loading}>{loading ?"Processing": "Login now"}</button>
+                    <button type="button" onClick={handleLogin} className="_social_login_form_btn_link _btn1" disabled={loading}>{loading ?"Processing": "Login now"}</button>
                   </div>
                 </form>
 

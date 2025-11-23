@@ -2,4 +2,6 @@ node_modules/
 .next/
 # .env
 .DS_Store
-# backend/public/uploads/
+backend/public/uploads/
+backend/node_modules
+frontend/node_modules

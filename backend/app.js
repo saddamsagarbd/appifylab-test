@@ -4,7 +4,7 @@ import cors from "cors";
 // import upload from "./middleware/uploadMiddleware.js"
 // import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import planRoutes from "./routes/planRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 
 dotenv.config();
@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/plans", planRoutes);
+app.use("/api/posts", postRoutes);
 app.use("/api/companies", companyRoutes);
 
 export default app;

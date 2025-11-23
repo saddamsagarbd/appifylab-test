@@ -1,8 +1,33 @@
 "use client";
 
+import { useEffect } from "react";
 import Script from "next/script";
 
 export default function BootstrapClient() {
+  useEffect(() => {
+    const notifyDropdown = document.querySelector("#_notify_drop");
+    const notifyDropShowBtn = document.querySelector("#_notify_btn");
+    let isDropShow1 = false;
+
+    if (notifyDropdown && notifyDropShowBtn) {
+      notifyDropShowBtn.addEventListener("click", function () {
+        isDropShow1 = !isDropShow1;
+        if (isDropShow1) {
+          notifyDropdown.classList.add("show");
+        } else {
+          notifyDropdown.classList.remove("show");
+        }
+      });
+    }
+
+    // Optional cleanup
+    return () => {
+      if (notifyDropShowBtn) {
+        notifyDropShowBtn.replaceWith(notifyDropShowBtn.cloneNode(true));
+      }
+    };
+  }, []);
+
   return (
     <>
       <Script
