@@ -26,23 +26,28 @@ export const storePost = async (req, res) => {
                 return res.status(500).json({ message: "Error parsing form data" });
             }
 
-            const text = fields.text || "";
+            const text = fields.text ? fields.text[0] : "";
+            const userId = fields.userId ? fields.userId[0] : null;
             const mediaFile = files.media ? files.media[0].newFilename : null;
-            const userId = fields.userId;
 
-            console.log("Text:", text);
-            console.log("Media file:", mediaFile);
-            console.log("User ID:", userId);
+            console.log("tex: ", text);
+            console.log("mediaFile: ", mediaFile);
+            console.log("userId: ", userId);
 
             // Save to database
-            // const query = `
-            //     INSERT INTO posts (text, media, user_id)
-            //     VALUES ($1, $2)
-            //     RETURNING *;
-            // `;
-            // const result = await pool.query(query, [text, mediaFile]);
+            const query = `
+                INSERT INTO posts (content, file_name, author)
+                VALUES ($1, $2, $3)
+                RETURNING *;
+            `;
+            const result = await pool.query(query, [text, mediaFile, userId]);
 
-            res.status(200).json({ success: true });
+            console.log(result);
+
+            res.status(200).json({
+                success: true,
+                data: result.rows[0],
+            });
         });
     } catch (err) {
         console.error(err);
