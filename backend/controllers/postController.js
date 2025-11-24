@@ -22,7 +22,6 @@ export const storePost = async (req, res) => {
 
         form.parse(req, async (err, fields, files) => {
             if (err) {
-                console.error(err);
                 return res.status(500).json({ message: "Error parsing form data" });
             }
 
@@ -30,11 +29,6 @@ export const storePost = async (req, res) => {
             const userId = fields.userId ? fields.userId[0] : null;
             const mediaFile = files.media ? files.media[0].newFilename : null;
             const postType = fields.is_private ? (fields.is_private[0] == 'true' ? 0 : 1) : null;
-
-            console.log("tex: ", text);
-            console.log("mediaFile: ", mediaFile);
-            console.log("userId: ", userId);
-            console.log("is_private: ", fields.is_private);
 
             // Save to database
             const query = `
@@ -64,17 +58,16 @@ export const getPosts = async (req, res) => {
 
         const userId = req.query.userId ? Number(req.query.userId) : null;
 
-        const query = `
+        const postsQuery = `
             SELECT 
-            posts.*,
-            users.first_name,
-            users.last_name,
-            COUNT(likes.id) AS total_likes,
-            EXISTS (
-                SELECT 1 
-                FROM likes 
-                WHERE likes.post_id = posts.id AND likes.user_id = $1
-            ) AS liked_by_user
+                posts.*,
+                users.first_name,
+                users.last_name,
+                COUNT(likes.id) AS total_likes,
+                EXISTS (
+                    SELECT 1 FROM likes 
+                    WHERE likes.post_id = posts.id AND likes.user_id = $1
+                ) AS liked_by_user
             FROM posts
             JOIN users ON posts.author = users.id
             LEFT JOIN likes ON likes.post_id = posts.id
@@ -83,19 +76,45 @@ export const getPosts = async (req, res) => {
             ORDER BY posts.created_at DESC;
         `;
 
-        console.log("userId", userId);
+        const postsResult = await pool.query(postsQuery, [userId]);
+        const posts = postsResult.rows;
 
-        const result = await pool.query(query, [userId]);
+        for (let post of posts) {
+            // get comments
+            const commentsQuery = `
+                SELECT 
+                    comments.*,
+                    users.first_name || ' ' || users.last_name AS user_name
+                FROM comments
+                JOIN users ON comments.user_id = users.id
+                WHERE comments.post_id = $1
+                ORDER BY comments.created_at ASC;
+            `;
+            const commentsResult = await pool.query(commentsQuery, [post.id]);
+            post.comments = commentsResult.rows;
 
-        console.log(result.rows);
+            // get replies for each comment
+            for (let comment of post.comments) {
+                const repliesQuery = `
+                    SELECT 
+                        replies.*,
+                        users.first_name || ' ' || users.last_name AS user_name
+                    FROM replies
+                    JOIN users ON replies.user_id = users.id
+                    WHERE replies.comment_id = $1
+                    ORDER BY replies.created_at ASC;
+                `;
+                const repliesResult = await pool.query(repliesQuery, [comment.id]);
+                comment.replies = repliesResult.rows;
+            }
+        }
 
         res.status(200).json({
             success: true,
-            posts: result.rows,
+            posts,
         });
         
     } catch (err) {
-        console.error(err);
         res.status(500).json({ message: err.message });        
     }
 
@@ -134,5 +153,89 @@ export const toggleLike = async (req, res) => {
         console.error(err);
         res.status(500).json({ message: err.message }); 
         
+    }
+}
+
+export const commentReply = async (req, res) => {
+    if (req.method !== "POST") {
+        return res.status(405).json({ message: "Method not allowed" });
+    }
+
+    try {
+        const form = formidable({
+            multiples: false,
+            uploadDir: path.join(process.cwd(), "/public/uploads"),
+            keepExtensions: true,
+        });
+
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error parsing form data" });
+            }
+
+            console.log(fields);
+
+            const reply = fields.reply ? fields.reply[0] : "";
+            const commentId = fields.commentId ? fields.commentId[0] : null;
+            const userId = fields.userId ? fields.userId[0] : null;
+
+            // Save to database
+            const query = `
+                INSERT INTO replies (comment_id, user_id, content)
+                VALUES ($1, $2, $3)
+                RETURNING *;
+            `;
+            const result = await pool.query(query, [commentId, userId, reply]);
+
+            res.status(200).json({
+                success: true,
+                data: result.rows[0],
+            });
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+export const postComment = async (req, res) => {
+    if (req.method !== "POST") {
+        return res.status(405).json({ message: "Method not allowed" });
+    }
+
+    try {
+        const form = formidable({
+            multiples: false,
+            uploadDir: path.join(process.cwd(), "/public/uploads"),
+            keepExtensions: true,
+        });
+
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error parsing form data" });
+            }
+
+            console.log(fields);
+
+            const comment = fields.comment ? fields.comment[0] : "";
+            const postId = fields.postId ? fields.postId[0] : null;
+            const userId = fields.userId ? fields.userId[0] : null;
+
+            // Save to database
+            const query = `
+                INSERT INTO comments (post_id, user_id, content)
+                VALUES ($1, $2, $3)
+                RETURNING *;
+            `;
+            const result = await pool.query(query, [postId, userId, comment]);
+
+            res.status(200).json({
+                success: true,
+                data: result.rows[0],
+            });
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 }

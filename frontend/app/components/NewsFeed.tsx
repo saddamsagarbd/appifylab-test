@@ -3,46 +3,50 @@ import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 type NewsFeedProps = {
-  post: Post;
-  userId: number; // this is the param you're passing
+    post: Post;
+    userId: number | null;
 };
 
 type Post = {
-  id: number;
-  content: string;
-  file_name?: string;
-  visibility: number;
-  author: number;
-  created_at: Date;
-  first_name: string;
-  last_name: string;
-  liked_by_user: boolean;
-  total_likes: number;
-  comments: CommentType[];
+    id: number;
+    content: string;
+    file_name?: string;
+    visibility: number;
+    author: number;
+    created_at: Date;
+    first_name: string;
+    last_name: string;
+    liked_by_user: boolean;
+    total_likes: number;
+    comments: CommentType[];
 };
 
 type CommentType = {
-  id: number;
-  user_id: number;
-  user_name: string;
-  content: string;
-  total_likes: number;
-  liked_by_user: boolean;
-  replies: ReplyType[];
+    id: number;
+    user_id: number;
+    user_name: string;
+    content: string;
+    total_likes: number;
+    liked_by_user: boolean;
+    replies: ReplyType[];
 };
 
 type ReplyType = {
-  id: number;
-  user_id: number;
-  user_name: string;
-  content: string;
-  total_likes: number;
-  liked_by_user: boolean;
+    id: number;
+    user_id: number;
+    user_name: string;
+    content: string;
+    total_likes: number;
+    liked_by_user: boolean;
 };
 
 const NewsFeed = ({ post, userId }: NewsFeedProps) => {
+    const [postData, setPostData] = useState<Post>(post);
+    const [comment, setComment] = useState('');
+    const [reply, setReply] = useState('');
     const [liked, setLiked] = useState(post.liked_by_user);
     const [totalLikes, setTotalLikes] = useState(post.total_likes);
     
@@ -64,6 +68,88 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
         console.log(res.data);
         setLiked(res.data.liked);
         setTotalLikes(res.data.total_likes);
+    }
+
+    const handleComment = async (postId: number) => {
+
+        try {
+
+            if (!comment.trim()) {
+                toast.error("Comment cannot be empty.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("comment", comment);
+            formData.append("postId", postId.toString());
+            formData.append("userId", userId.toString());
+
+            const res = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/posts/comment`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            console.log(res.data);
+
+            if (res.data.success) {
+                toast.success("Post saved!");
+                setComment("");
+                setPostData(prev => ({
+                    ...prev,
+                    comments: [...prev.comments, res.data.data]
+                }));
+            } else {
+                toast.error("Error saving post.");
+            }
+            
+        } catch (error) {
+            console.log(error);
+            toast.error("Error saving comment.");
+        }
+    }
+
+    const handleReply = async (commentId: number) => {
+
+        try {
+
+            if (!reply.trim()) {
+                toast.error("Reply cannot be empty.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("reply", reply);
+            formData.append("commentId", commentId.toString());
+            formData.append("userId", userId.toString());
+
+            const res = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/posts/reply`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            console.log(res.data);
+
+            if (res.data.success) {
+                toast.success("Reply saved!");
+                setReply("");
+                setPostData(prev => ({
+                    ...prev,
+                    comments: prev.comments.map(c =>
+                        c.id === commentId
+                            ? { ...c, replies: [...(c.replies || []), res.data.data] }
+                            : c
+                    )
+                }));
+            } else {
+                toast.error("Error saving reply.");
+            }
+            
+        } catch (error) {
+            console.log(error);
+            toast.error("Error saving reply.");
+        }
     }
 
     return (
@@ -239,7 +325,7 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                 </div>
                             </div>
                             <div className="_feed_inner_comment_box_content_txt">
-                                <textarea className="form-control _comment_textarea" placeholder="Write a comment" id="floatingTextarea2"></textarea>
+                                <textarea value={comment} onChange={(e) => setComment(e.target.value)} className="form-control _comment_textarea" placeholder="Write a comment" id="floatingTextarea2"></textarea>
                             </div>
                         </div>
                         <div className="_feed_inner_comment_box_icon">
@@ -253,6 +339,16 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                     <path fill="#000" fillOpacity=".46" fillRule="evenodd" d="M10.867 1.333c2.257 0 3.774 1.581 3.774 3.933v5.435c0 2.352-1.517 3.932-3.774 3.932H5.101c-2.254 0-3.767-1.58-3.767-3.932V5.266c0-2.352 1.513-3.933 3.767-3.933h5.766zm0 1H5.101c-1.681 0-2.767 1.152-2.767 2.933v5.435c0 1.782 1.086 2.932 2.767 2.932h5.766c1.685 0 2.774-1.15 2.774-2.932V5.266c0-1.781-1.089-2.933-2.774-2.933zm.426 5.733l.017.015.013.013.009.008.037.037c.12.12.453.46 1.443 1.477a.5.5 0 11-.716.697S10.73 8.91 10.633 8.816a.614.614 0 00-.433-.118.622.622 0 00-.421.225c-1.55 1.88-1.568 1.897-1.594 1.922a1.456 1.456 0 01-2.057-.021s-.62-.63-.63-.642c-.155-.143-.43-.134-.594.04l-1.02 1.076a.498.498 0 01-.707.018.499.499 0 01-.018-.706l1.018-1.075c.54-.573 1.45-.6 2.025-.06l.639.647c.178.18.467.184.646.008l1.519-1.843a1.618 1.618 0 011.098-.584c.433-.038.854.088 1.19.363zM5.706 4.42c.921 0 1.67.75 1.67 1.67 0 .92-.75 1.67-1.67 1.67-.92 0-1.67-.75-1.67-1.67 0-.921.75-1.67 1.67-1.67zm0 1a.67.67 0 10.001 1.34.67.67 0 00-.002-1.34z" clipRule="evenodd" />
                                 </svg>
                             </button>
+                            <button type="button" onClick={() => handleComment(post.id)} className="_feed_inner_comment_box_icon_btn" aria-label="Switch layout">
+                                <span className="_feed_inner_timeline_reaction_link">
+                                    <span>
+                                        <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">
+                                            <path stroke="#000" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
+                                            <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563"/>
+                                        </svg>
+                                    </span>
+                                </span>
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -261,9 +357,9 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                 {/* <div className="_previous_comment">
                     <button type="button" className="_previous_comment_txt">View 4 previous comments</button>
                 </div> */}
-                {post.comments && post.comments.map(comment => (
+                {postData.comments && postData.comments.map(comment => (
                     
-                    <div className="_comment_main">
+                    <div key={comment.id} className="_comment_main">
                         <div className="_comment_image">
                             <Link href="#" className="_comment_image_link">
                                 <div className="image-wrapper">
@@ -276,12 +372,12 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                 <div className="_comment_details_top">
                                     <div className="_comment_name">
                                         <Link href="#">
-                                            <h4 className="_comment_name_title">Radovan SkillArena</h4>
+                                            <h4 className="_comment_name_title">{comment.user_name}</h4>
                                         </Link>
                                     </div>
                                 </div>
                                 <div className="_comment_status">
-                                    <p className="_comment_status_text"><span>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. </span></p>
+                                    <p className="_comment_status_text"><span>{comment.content}</span></p>
                                 </div>
                                 <div className="_total_reactions">
                                     <div className="_total_react">
@@ -307,7 +403,32 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="_feed_inner_comment_box">
+                            {comment.replies && comment.replies.map(reply => (
+                                
+                                <div key={reply.id} className="_feed_inner_comment_box my-3">
+                                    <div className="_feed_inner_comment_box_content">
+                                        <div className="_feed_inner_comment_box_content_image">
+                                            <div className="image-wrapper">
+                                            <Image src="/assets/images/comment_img.png" fill alt="" className="_comment_img" />
+                                            </div>
+                                        </div>
+                                        <div className="_feed_inner_comment_box_content_txt">
+                                            <div className="_comment_details_top">
+                                                <div className="_comment_name">
+                                                    <Link href="#">
+                                                        <h4 className="_comment_name_title">{reply.user_name}</h4>
+                                                    </Link>
+                                                </div>
+                                            </div>
+                                            <div className="_comment_status">
+                                                <p className="_comment_status_text"><span>{reply.content}</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div className="_feed_inner_comment_box my-3">
                                 <form className="_feed_inner_comment_box_form">
                                     <div className="_feed_inner_comment_box_content">
                                         <div className="_feed_inner_comment_box_content_image">
@@ -316,7 +437,7 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                             </div>
                                         </div>
                                         <div className="_feed_inner_comment_box_content_txt">
-                                            <textarea className="form-control _comment_textarea" placeholder="Write a comment" id="floatingTextarea2"></textarea>
+                                            <textarea value={reply} onChange={(e) => setReply(e.target.value)} className="form-control _comment_textarea" placeholder="Write a comment" id="floatingTextarea2"></textarea>
                                         </div>
                                     </div>
                                     <div className="_feed_inner_comment_box_icon">
@@ -330,12 +451,21 @@ const NewsFeed = ({ post, userId }: NewsFeedProps) => {
                                                 <path fill="#000" fillOpacity=".46" fillRule="evenodd" d="M10.867 1.333c2.257 0 3.774 1.581 3.774 3.933v5.435c0 2.352-1.517 3.932-3.774 3.932H5.101c-2.254 0-3.767-1.58-3.767-3.932V5.266c0-2.352 1.513-3.933 3.767-3.933h5.766zm0 1H5.101c-1.681 0-2.767 1.152-2.767 2.933v5.435c0 1.782 1.086 2.932 2.767 2.932h5.766c1.685 0 2.774-1.15 2.774-2.932V5.266c0-1.781-1.089-2.933-2.774-2.933zm.426 5.733l.017.015.013.013.009.008.037.037c.12.12.453.46 1.443 1.477a.5.5 0 11-.716.697S10.73 8.91 10.633 8.816a.614.614 0 00-.433-.118.622.622 0 00-.421.225c-1.55 1.88-1.568 1.897-1.594 1.922a1.456 1.456 0 01-2.057-.021s-.62-.63-.63-.642c-.155-.143-.43-.134-.594.04l-1.02 1.076a.498.498 0 01-.707.018.499.499 0 01-.018-.706l1.018-1.075c.54-.573 1.45-.6 2.025-.06l.639.647c.178.18.467.184.646.008l1.519-1.843a1.618 1.618 0 011.098-.584c.433-.038.854.088 1.19.363zM5.706 4.42c.921 0 1.67.75 1.67 1.67 0 .92-.75 1.67-1.67 1.67-.92 0-1.67-.75-1.67-1.67 0-.921.75-1.67 1.67-1.67zm0 1a.67.67 0 10.001 1.34.67.67 0 00-.002-1.34z" clipRule="evenodd"></path>
                                             </svg>
                                         </button>
+                                        <button type="button" onClick={() => handleReply(comment.id)} className="_feed_inner_comment_box_icon_btn" aria-label="Switch layout">
+                                            <span className="_feed_inner_timeline_reaction_link">
+                                                <span>
+                                                    <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21">
+                                                        <path stroke="#000" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
+                                                        <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563"/>
+                                                    </svg>
+                                                </span>
+                                            </span>
+                                        </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     </div>
-
                 ))}
             </div>
         </div>

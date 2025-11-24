@@ -11,7 +11,8 @@ import axios from "axios";
 
 const Feed = () => {
     const router = useRouter();
-    const { user, logout } = useAuth();
+    const { user, logout } = useAuth();    
+    const [open, setOpen] = useState(false);
     const [posts, setPosts] = useState([]);
     const [text, setText] = useState("");
     const [isPrivate, setIsPrivate] = useState(false);
@@ -22,11 +23,10 @@ const Feed = () => {
 
     const handleLogout = async () => {
         try {
-            setLoading(true);
             await logout();
             toast.success(`Successfully Logged out`);
         } catch (error) {
-            setLoading(false);
+            console.log(error);
             toast.error("Something went wrong. Please try again later.");
         }
     }
@@ -71,15 +71,22 @@ const Feed = () => {
             formData.append("userId", user.id);
 
             // POST to API route
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/save-post`, {
-                method: "POST",
-                body: formData,
-            });
+            // const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/save-post`, {
+            //     method: "POST",
+            //     body: formData,
+            // });
 
-            if (res.ok) {
+            const res = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/posts/save-post`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            if (res.data.success) {
                 toast.success("Post saved!");
                 setText("");
                 removeMedia();
+                getPosts();
             } else {
                 toast.error("Error saving post.");
             }
@@ -377,6 +384,7 @@ const Feed = () => {
                                     </Link>
                                 </li>
                             </ul>
+                            
                             <div className="_header_nav_profile">
                                 <div className="_header_nav_profile_image">
                                     <div className="image-wrapper">
@@ -385,14 +393,14 @@ const Feed = () => {
                                 </div>
                                 <div className="_header_nav_dropdown">
                                     <p className="_header_nav_para">Dylan Field</p>
-                                    <button id="_profile_drop_show_btn" className="_header_nav_dropdown_btn _dropdown_toggle" type="button" aria-label="Switch layout">
+                                    <button onClick={() => setOpen(prev => !prev)} id="_profile_drop_show_btn" className="_header_nav_dropdown_btn _dropdown_toggle" type="button" aria-label="Switch layout">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" fill="none" viewBox="0 0 10 6">
                                             <path fill="#112032" d="M5 5l.354.354L5 5.707l-.354-.353L5 5zm4.354-3.646l-4 4-.708-.708 4-4 .708.708zm-4.708 4l-4-4 .708-.708 4 4-.708.708z" />
                                         </svg>
                                     </button>
                                 </div>
                                 {/* <!-- dropdown --> */}
-                                <div id="_prfoile_drop" className="_nav_profile_dropdown _profile_dropdown">
+                                <div id="_prfoile_drop" className={`_nav_profile_dropdown ${open ? "show" : ""}`}>
                                     <div className="_nav_profile_dropdown_info">
                                         <div className="_nav_profile_dropdown_image">
                                             <div className="image-wrapper">
@@ -444,7 +452,7 @@ const Feed = () => {
                                             </Link>
                                         </li>
                                         <li className="_nav_dropdown_list_item">
-                                            <Link href="#" className="_nav_dropdown_link">
+                                            <Link onClick={handleLogout} href="#" className="_nav_dropdown_link">
                                                 <div className="_nav_drop_info">
                                                     <span>
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 19 19">
@@ -453,7 +461,7 @@ const Feed = () => {
                                                     </span>
                                                     Log Out		
                                                 </div>
-                                                <button type="submit" className="_nav_drop_btn_link" aria-label="Switch layout">
+                                                <button type="button" className="_nav_drop_btn_link" aria-label="Switch layout">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="6" height="10" fill="none" viewBox="0 0 6 10">
                                                         <path fill="#112032" d="M5 5l.354.354L5.707 5l-.353-.354L5 5zM1.354 9.354l4-4-.708-.708-4 4 .708.708zm4-4.708l-4-4-.708.708 4 4 .708-.708z" opacity=".5"/>
                                                     </svg>												  
@@ -833,7 +841,7 @@ const Feed = () => {
                                                 {/* <!--For Mobile--> */}
                                             </div>
                                         </form>
-                                        {loading ? <p>Loading posts...</p> : posts.map((post, i) => <NewsFeed key={i} post={post} userId={user.id} />)}
+                                        {loading ? <p>Loading posts...</p> : posts.map((post, i) => <NewsFeed key={i} post={post} userId={user?.id ?? null} />)}
                                     </div>
                                 </div>
                             </div>
@@ -867,7 +875,7 @@ const Feed = () => {
                                                     </div>
                                                 </div>
                                                 <div className="_right_info_btn_grp">
-                                                    <button onClick={handleLogout} type="button" className="_right_info_btn_link">Logout</button>
+                                                    <button type="button" className="_right_info_btn_link">Ignore</button>
                                                     <button type="button" className="_right_info_btn_link _right_info_btn_link_active">Follow</button>
                                                 </div>
                                             </div>

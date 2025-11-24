@@ -7,7 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
-import companyRoutes from "./routes/companyRoutes.js";
 
 dotenv.config();
 // connectDB();
@@ -36,6 +35,5 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
-app.use("/api/companies", companyRoutes);
 
 export default app;
